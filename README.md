@@ -17,8 +17,8 @@
 推荐使用此方式，**由 AI 自动安装**。让 AI 联网执行以下步骤：
 
 1. 装依赖：`apt-get install -y libglib2.0-0 libnss3 libnspr4 libasound2t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 libcups2t64 libdrm2 libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libdbus-1-3 libexpat1 libxkbcommon0 libxshmfence1 libx11-xcb1 unzip fonts-noto-cjk fonts-noto-core`
-2. 下载解压 Chromium：从 npmmirror 镜像拉 Playwright 官方构建（Chromium 153，revision 1243），用 `unzip` 解压
-3. 建 wrapper：代理走环境变量 `DSH_BROWSER_PROXY`（空串即直连）；GPU 用 `DSH_BROWSER_DISABLE_GPU` 控制（默认关 GPU 省内存，但 WebGL/Canvas 会退化）
+2. 下载解压 Chromium：从 npmmirror 镜像拉 Playwright 官方构建（Chromium 153，revision 1243），用 `unzip` 解压，并用 sha256 校验
+3. 建 wrapper：代理走环境变量 `DSH_BROWSER_PROXY`（空串即直连）；GPU 默认启用，设 `DSH_BROWSER_DISABLE_GPU=1` 才关（省内存，但 WebGL/滑块验证/地图/播放器会退化）
 4. 修权限：`chmod 755` chrome、`chrome_crashpad_handler`
 5. 依赖校验：`ldd ... | grep "not found"` 为空，`chrome --version` 输出 `Chromium 153.0.8010.12`
 6. 装插件：在 DSHA 插件市场安装 `dsh-inner-browser-use`（0.47.101）
