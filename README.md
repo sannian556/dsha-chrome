@@ -1,148 +1,57 @@
 # DSHA-Chrome
 
-在 DSHA 的 Linux 容器中部署 Chromium，使 AI 能够浏览网页、登录账号并执行页面操作。
+在 [DSHA](https://github.com/DSH-APP/DSHA) 的 Linux 容器中部署 Chromium，使 AI 能够浏览网页、登录账号并执行页面操作。
 
-安装说明见 [Releases](https://github.com/sannian556/dsha-chrome/releases)。
+## 特性
 
-# dsh-browser-env 在线安装指导（给 AI 看）
+- **AI 浏览网页**：在 [DSHA](https://github.com/DSH-APP/DSHA) 右栏运行完整 Chromium，AI 可打开页面、点击、输入、滚动、读取内容
+- **登录账号操作**：登录账号后，AI 可在已登录状态下代为操作页面。
+- 面向 aarch64（arm64）Linux 容器，适配 [DSHA](https://github.com/DSH-APP/DSHA) 手机运行环境
+- 启动 wrapper 内置 --no-sandbox 与代理环境变量，开箱即用
+- 右栏虚拟视口补丁：解决手机窄栏裁切桌面优先站点的问题
 
-> ## ⚠️ 资源占用提醒（安装前必读）
->
-> Chromium 是完整浏览器，资源占用较大，请**量力而行**：
->
-> | 资源 | 占用（实测） |
-> |------|-------------|
-> | 磁盘 | 解压后约 740MB（主程序 493MB + 依赖库 + 字体） |
-> | 内存 | sidecar Chrome 运行时约 1~2GB；应用视口补丁后，复杂页面（抖音等）可达约 1.8GB |
->
-> 手机内存不足 4GB、或需同时运行多个重量级应用时，建议关闭本浏览器，
-> 或降低视口高度（改 1024×640）以减少内存占用。
+## 安装
 
-目标：在 DeepSeek Harness 的 Linux 容器（aarch64）里，从零恢复右栏浏览器（sidecar）所需的 Chromium 运行时 + 插件。
-本方案**全程联网安装**，不依赖任何预打包文件。由 AI 按本文档逐步执行。
+### 方式一：在线安装（推荐）
 
-## 0. 环境前提与自检
+推荐使用此方式，**由 AI 自动安装**。让 AI 联网执行以下步骤：
 
-- 架构必须是 aarch64（arm64）：`uname -m` 应输出 `aarch64`
-- 身份是 root：`id -u` 应为 `0`
-- 有 apt 源（Ubuntu 24.04 noble / ports.ubuntu.com）
-- 有可用代理（默认 127.0.0.1:7890，可换）
+1. 装依赖：`apt-get install -y libglib2.0-0 libnss3 libnspr4 libasound2t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 libcups2t64 libdrm2 libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libdbus-1-3 libexpat1 libxkbcommon0 libxshmfence1 libx11-xcb1 unzip fonts-noto-cjk fonts-noto-core`
+2. 下载解压 Chromium：从 npmmirror 镜像拉 Playwright 官方构建（Chromium 153，revision 1243），用 `unzip` 解压
+3. 建 wrapper：代理走环境变量 `DSH_BROWSER_PROXY`，空串即直连
+4. 修权限：`chmod 755` chrome、`chrome_crashpad_handler`
+5. 依赖校验：`ldd ... | grep "not found"` 为空，`chrome --version` 输出 `Chromium 153.0.8010.12`
 
-先确认：`curl -sS -m 10 -o /dev/null -w "%{http_code}\n" https://example.com` 能通。
-apt 源直连通常可通（不需要走代理）；若 apt 超时再考虑给 apt 配代理。
+完整可执行脚本见仓库 `setup-chrome.sh`。
 
-## 1. 安装 Chromium 运行依赖（apt）
+### 方式二：本地安装包
 
-```bash
-apt-get update
-apt-get install -y \
-  libglib2.0-0 libnss3 libnspr4 libasound2t64 libatk1.0-0t64 libcups2t64 \
-  libdrm2 libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
-  libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libdbus-1-3 libexpat1 \
-  libxkbcommon0 libatk-bridge2.0-0t64 libxshmfence1 libx11-xcb1
-```
+下载本 Release 的 Assets 附件 `DSHA-Chrome本地安装指导.zip`，解压后按包内 `README.md` 从包内取文件安装，不依赖网络。
 
-说明：libnss3 包会一并装齐 NSS 模块（libsoftokn3/libfreebl3/libnssckbi 等），
-在线安装不需要手动补，也不会出现离线打包时"缺 sqlite/NSS 模块"的问题。
+## 补丁
 
-## 2. 安装中文字体 + 多语言字体
+### 右栏虚拟视口
 
-```bash
-apt-get install -y fonts-noto-cjk fonts-noto-core
-```
+手机上右栏宽度过窄，桌面优先站点（B 站、Bing、抖音等）右侧内容被裁切。该补丁将上报给 Chrome 的视口改为桌面宽度，默认 1024，可按需调整：
 
-fonts-noto-cjk 提供中日韩；fonts-noto-core 提供泰文/印地语等，避免非 CJK 文字显示为方框。
-装完后执行 `fc-cache -f`（若 fc-cache 不存在则跳过，字体已就位）。
+- 内存紧张或希望字大 → 768
+- 追求完整桌面布局 → 1280
+- 降低内存占用 → 1024×640 固定桌面比例
 
-## 3. 下载并安装 Chromium（arm64）
+AI 可视设备内存与使用场景选择合适参数，详细改动与调参参见 `PATCHES.md`。
 
-Chromium 用 Playwright 官方构建（Chromium 153，revision 1243），从国内镜像下载：
+## 资源占用
 
-```bash
-cd /tmp
-curl -L -sS -m 400 "https://cdn.npmmirror.com/binaries/playwright/builds/chromium/1243/chromium-linux-arm64.zip" -o chromium.zip
-python3 -c "import zipfile; zipfile.ZipFile('/tmp/chromium.zip').extractall('/opt/chromium')"
-```
+安装的是完整的 Chromium 浏览器，因此占用资源较多，请量力而行：
 
-解压后主程序在 `/opt/chromium/chrome-linux/chrome`。
-验证：`/opt/chromium/chrome-linux/chrome --version` 应输出 `Chromium 153.0.8010.12`。
+| 资源 | 占用 |
+|------|------|
+| 磁盘 | 解压后约 740MB |
+| 内存 | 运行时约 1–2GB；应用视口补丁后复杂页面可达约 1.8GB |
 
-> 备选源（npmmirror 失败时）：
-> `https://cdn.playwright.dev/dbazure/download/playwright/builds/chromium/1243/chromium-linux-arm64.zip`
-> （此源通常需要走代理）
+## 致谢
 
-## 4. 建启动 wrapper
+- [dsh-inner-browser-use](https://github.com/regrevia/dsh-inner-browser-use)（作者 regrevia，MIT License）——驱动 [DSHA](https://github.com/DSH-APP/DSHA) 右栏浏览器，本项目视口补丁基于其 client.js 修改。
+- [DSHA](https://github.com/DSH-APP/DSHA)（作者 qiannianhuanxiang，MIT License）——本项目面向的运行环境。
 
-Chrome 以 root 运行必须加 `--no-sandbox`。写三个 wrapper：
-
-```bash
-cat > /usr/bin/google-chrome <<'EOF'
-#!/bin/bash
-exec /opt/chromium/chrome-linux/chrome --no-sandbox --disable-dev-shm-usage --proxy-server="${DSH_BROWSER_PROXY:-http://127.0.0.1:7890}" --lang=zh-CN "$@"
-EOF
-cp /usr/bin/google-chrome /usr/bin/chromium
-cp /usr/bin/google-chrome /usr/bin/chromium-browser
-chmod 755 /usr/bin/google-chrome /usr/bin/chromium /usr/bin/chromium-browser
-```
-
-## 5. 权限修正
-
-```bash
-chmod 755 /opt/chromium
-chmod -R a+rX /opt/chromium/chrome-linux
-chmod 755 /opt/chromium/chrome-linux/chrome
-```
-
-## 6. 安装插件 dsh-inner-browser-use
-
-通过插件市场（Discover）搜索 `inner-browser-use` 安装，版本 0.47.101（作者 regrevia）。
-若市场不可用，用命令行：`add github:regrevia/dsh-inner-browser-use`（或对应 npm 包）。
-
-## 7. 应用视口补丁（可选但推荐）
-
-手机上右栏太窄，桌面优先站点会被裁掉右边。给插件的 `client.js` 打补丁，
-把上报给 Chrome 的视口从"栏宽"改成"桌面宽度 1024 + 等比高度"。
-
-找到 `client.js` 中上报视口的两处，做如下修改：
-
-```diff
--        if (Math.abs(Number(view?.w ?? 0) - size.w) < 1 && Math.abs(Number(view?.h ?? 0) - size.h) < 1) return undefined
-+        const wantW = Math.max(1024, Math.round(size.w))
-+        const wantH = Math.round(wantW * (size.h / size.w))
-+        if (Math.abs(Number(view?.w ?? 0) - wantW) < 1 && Math.abs(Number(view?.h ?? 0) - wantH) < 1) return undefined
-```
-
-```diff
--            body: JSON.stringify({ session: String(props.sessionId ?? ''), w: Math.round(size.w), h: Math.round(size.h), dpr: Number(window.devicePixelRatio) || 1 }),
-+            body: JSON.stringify({ session: String(props.sessionId ?? ''), w: wantW, h: wantH, dpr: Number(window.devicePixelRatio) || 1 }),
-```
-
-只改客户端半，不需要重启 dsh，重载 App 页面即可生效。
-副作用与调参（字变小、内存上升、降内存改 1024×640）详见补丁说明文档。
-
-## 8. 验证
-
-```bash
-/usr/bin/google-chrome --version   # Chromium 153.0.8010.12
-```
-
-然后让 sidecar 打开任意 https 页面，确认：
-- 中文正常显示（非方框）
-- 无 nss 崩溃（能访问 https）
-- 宽站（B 站/Bing）不再裁掉右侧
-
-## 9. 已知无害日志
-
-headless 运行下会出现这些无害噪音，可忽略：dbus 连接失败、udev monitor 失败、
-inotify max_user_watches 读取失败、GLib-GIO g_settings 断言。
-
-## 10. 清理
-
-```bash
-rm -f /tmp/chromium.zip
-```
-
----
-
-**一句话流程**：apt 装依赖+字体 → 下载解压 Chromium → 建 wrapper → 装插件 → 打视口补丁 → 验证。
-全程联网，无预打包文件。
+上游版权与许可声明均保留，不作改动。
