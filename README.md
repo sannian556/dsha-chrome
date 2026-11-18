@@ -18,15 +18,20 @@
 
 1. 装依赖：`apt-get install -y libglib2.0-0 libnss3 libnspr4 libasound2t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 libcups2t64 libdrm2 libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libdbus-1-3 libexpat1 libxkbcommon0 libxshmfence1 libx11-xcb1 unzip fonts-noto-cjk fonts-noto-core`
 2. 下载解压 Chromium：从 npmmirror 镜像拉 Playwright 官方构建（Chromium 153，revision 1243），用 `unzip` 解压
-3. 建 wrapper：代理走环境变量 `DSH_BROWSER_PROXY`，空串即直连
+3. 建 wrapper：代理走环境变量 `DSH_BROWSER_PROXY`（空串即直连）；GPU 用 `DSH_BROWSER_DISABLE_GPU` 控制（默认关 GPU 省内存，但 WebGL/Canvas 会退化）
 4. 修权限：`chmod 755` chrome、`chrome_crashpad_handler`
 5. 依赖校验：`ldd ... | grep "not found"` 为空，`chrome --version` 输出 `Chromium 153.0.8010.12`
+6. 装插件：在 DSHA 插件市场安装 `dsh-inner-browser-use`（0.47.101）
+7. 打视口补丁：按 `PATCHES.md` 修改 `client.js`（`dpr` 改 `1`）
+8. 验证：打开右栏，访问中文站点确认中文正常、宽站不裁边
 
 完整可执行脚本见仓库 [`setup-chrome.sh`](https://github.com/sannian556/dsha-chrome/blob/main/setup-chrome.sh)。
 
 ### 方式二：本地安装包
 
 下载本 Release 的 Assets 附件 `DSHA-Chrome.v1.0.0.zip`，解压后按包内 `README.md` 从包内取文件安装，不依赖网络。
+
+> 注意：该包为早期版本，安装流程可能与当前 `setup-chrome.sh` 不一致，建议优先用方式一。
 
 ## 补丁
 
@@ -48,6 +53,8 @@
 |------|------|
 | 磁盘 | 解压后约 740MB |
 | 内存 | 运行时约 1–2GB；应用视口补丁后复杂页面可达约 1.8GB |
+
+**风险提示**：wrapper 以 `--no-sandbox` + root 运行，用容器内隔离换可用性，建议只登小号/只读账号，不要放主力凭据。
 
 ## 致谢
 
