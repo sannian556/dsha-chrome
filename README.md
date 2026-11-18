@@ -22,11 +22,11 @@
 4. 修权限：`chmod 755` chrome、`chrome_crashpad_handler`
 5. 依赖校验：`ldd ... | grep "not found"` 为空，`chrome --version` 输出 `Chromium 153.0.8010.12`
 
-完整可执行脚本见仓库 `setup-chrome.sh`。
+完整可执行脚本见仓库 [`setup-chrome.sh`](https://github.com/sannian556/dsha-chrome/blob/main/setup-chrome.sh)。
 
 ### 方式二：本地安装包
 
-下载本 Release 的 Assets 附件 `DSHA-Chrome本地安装指导.zip`，解压后按包内 `README.md` 从包内取文件安装，不依赖网络。
+下载本 Release 的 Assets 附件 `DSHA-Chrome.v1.0.0.zip`，解压后按包内 `README.md` 从包内取文件安装，不依赖网络。
 
 ## 补丁
 
@@ -38,7 +38,7 @@
 - 追求完整桌面布局 → 1280
 - 降低内存占用 → 1024×640 固定桌面比例
 
-AI 可视设备内存与使用场景选择合适参数，详细改动与调参参见 `PATCHES.md`。
+**注意：补丁必须把 `dpr` 设为 `1`**（否则 CSS 1024 宽 × dpr 3 按 3072 光栅化，内存翻倍）。详细改动与调参见 [`PATCHES.md`](https://github.com/sannian556/dsha-chrome/blob/main/PATCHES.md)。
 
 ## 资源占用
 
